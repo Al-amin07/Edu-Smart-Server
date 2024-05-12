@@ -84,8 +84,9 @@ async function run() {
     })
 
     app.get('/submitAssignment', async (req, res) => {
-      const result = await submittedCollection.find().toArray();
-      console.log('IN submit', result);
+      const query = { status: 'pending'}
+      const result = await submittedCollection.find(query).toArray();
+      // console.log('IN submit', result);
       res.send(result)
     })
 
@@ -96,37 +97,12 @@ async function run() {
       res.send(result)
     })
 
-    app.post('/submitAssignment', upload.single('file'), async (req, res) => {
-      // const data = req.files;
+    app.post('/submitAssignment', async (req, res) => {
+      const data = req.body;
       // console.log(data);
-      const file = req.file;
-      const userEmail = req.body.UserEmail;
-      const title = req.body.title;
-      const marks = req.body.marks;
-      const name = req.body.name;
-      const note = req.body.note;
-      const img_url = req.body.img_url;
-      const due_date = req.body.due_date;
-      const difficulty = req.body.difficulty;
-      const status = req.body.status;
-      const newObj = {
-        file,
-        userEmail,
-        title,
-        name,
-        note,
-        marks,
-        img_url,
-        due_date,
-        difficulty,
-        status
-      }
-      console.log(newObj);
-      if (!file) {
-        return res.status(400).send('No file uploaded.');
-      }
+   
       
-      const result = await submittedCollection.insertOne(newObj)
+      const result = await submittedCollection.insertOne(data)
       
       res.send({success: true});
       

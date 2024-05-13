@@ -67,6 +67,7 @@ async function run() {
     const database = client.db("StudentAssignment");
     const assignmentCollection = database.collection("assignmentCollection");
     const submittedCollection = database.collection("submittedCollection");
+    const featureCollection = database.collection("FeatureCollection");
 
     app.get('/allAssignment', async (req, res) => {
       const result = await assignmentCollection.find().toArray();
@@ -117,6 +118,11 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/feature', async(req, res) => {
+      const result = await featureCollection.find().toArray();
+      res.send(result);
+    })
+
     app.patch('/obtainedMark', async(req, res) => {
       const data = req.body;
       const id = data.id;
@@ -129,6 +135,7 @@ async function run() {
           status: data.status
         },
       };
+      
       const result = await submittedCollection.updateOne(filter, updateDoc, options)
       res.send(result)
     })

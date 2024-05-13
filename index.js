@@ -3,6 +3,7 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 5000;
 require('dotenv').config()
+const cookieParser = require('cookie-parser');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 
@@ -14,6 +15,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser())
 
 const jwt = require('jsonwebtoken');
 
@@ -28,6 +30,21 @@ const cookieOptions = {
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
 };
+
+const verifyToken = async(req, res, next) => {
+  const token = req.cookies.token;
+  if(!token){
+    return res.status(401).send({message: 'Forbidden Access'});
+  }
+
+  jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+    if(err){
+      return res.status(401).send({message: 'Forbidden Access'})
+    }
+    req.user = decoded;
+    next();
+  })
+}
 
 
 
@@ -80,7 +97,12 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/submitAssignment', async (req, res) => {
+    app.get('/submitAssignment', verifyToken, async (req, res) => {
+      console.log(req.user);
+      console.log(req.query);
+      if(req.user.email !== req.query.email){
+        return res.status(403).send({message: 'Forbidden Accsee'})
+      }
       const query = { status: 'pending'}
       const result = await submittedCollection.find(query).toArray();
       // console.log('IN submit', result);
@@ -147,8 +169,13 @@ async function run() {
 
 
 
-    app.get('/mysubmission', async (req, res) => {
+    app.get('/mysubmission',verifyToken, async (req, res) => {
       const email = req.query.email;
+      const rEmail = req.user.email;
+      console.log('in My ', rEmail);
+      if(email !== rEmail){
+        return res.status(403).send({message: 'Forbidden Access'})
+      }
       // console.log('in my ', email);
       const query = { submitEmail: email };
       const result = await submittedCollection.find(query).toArray() || [];

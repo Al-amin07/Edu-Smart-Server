@@ -5,32 +5,29 @@ const port = process.env.PORT || 5000;
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
-// file 
-// const PDFParser = require('pdf-parse');
-// const fs = require('fs');
 
-// const uploadDirectory = './uploads';
-const multer = require('multer');
-// const path = require('path');
-// const mammoth = require('mammoth');
-// const pdf = require('html-pdf');
-
-// // File Middleware
-// app.use(express.urlencoded({ extended: true }));
-const upload = multer({ dest: 'uploads/' });
 
 
 
 app.use(cors({
-  origin: ['http://localhost:5174', 'http://localhost:5173', 'http://localhost:5175', 'http://localhost:5176'],
+  origin: ['http://localhost:5174', 'http://localhost:5173','https://assignment-11-1b23d.web.app', 'http://localhost:5176'],
   credentials: true
 }));
 app.use(express.json());
+
+const jwt = require('jsonwebtoken');
+
 
 
 app.get('/', (req, res) => {
   res.send('Hello')
 })
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+};
 
 
 
@@ -90,6 +87,30 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/getMark/:id', async(req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id)}
+      const result = await submittedCollection.findOne(query)
+      res.send(result)
+    })
+
+    app.patch('/obtainedMark', async(req, res) => {
+      const data = req.body;
+      const id = data.id;
+      const filter = { _id : new ObjectId(id)}
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          obtainedMarks: data.obtainedMarks,
+          feedback: data.feedback,
+          status: data.status
+        },
+      };
+      const result = await submittedCollection.updateOne(filter, updateDoc, options)
+      res.send(result)
+    })
+
     app.post('/created', async (req, res) => {
 
       const assignment = req.body;
@@ -108,11 +129,28 @@ async function run() {
       
     })
 
+    app.post('/jwt', async(req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN, {expiresIn: '1h'})
+      res
+      .cookie('token', token, cookieOptions)
+      .send({success: true})
+    })
+
+    app.post('/logout', async(req, res) => {
+      const user = req.body;
+  
+  res
+    .clearCookie("token", { ...cookieOptions, maxAge: 0 })
+    .send({ success: true });
+    })
+
 
 
     app.get('/mysubmission', async (req, res) => {
-      const email = req.body.email;
-      const query = { email: email };
+      const email = req.query.email;
+      // console.log('in my ', email);
+      const query = { submitEmail: email };
       const result = await submittedCollection.find(query).toArray() || [];
       res.send(result)
     })

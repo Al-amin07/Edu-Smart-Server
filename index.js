@@ -42,6 +42,7 @@ const verifyToken = async(req, res, next) => {
       return res.status(401).send({message: 'Forbidden Access'})
     }
     req.user = decoded;
+    console.log('in Verify', req.user);
     next();
   })
 }
@@ -75,16 +76,27 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/update/:id', async (req, res) => {
+    app.get('/update/:id',verifyToken, async (req, res) => {
       const id = req.params.id;
+      const email = req.query.email
+      const email1 = req.query.email
+      if(email !== email1){
+        return res.status(403).send({Message: 'Forbidden Access'})
+      }
       const query = { _id: new ObjectId(id) }
       console.log(id);
       const result = await assignmentCollection.findOne(query)
       res.send(result)
     })
 
-    app.get('/details/:id', async (req, res) => {
+    app.get('/details/:id',verifyToken, async (req, res) => {
       const id = req.params.id;
+      const email = req.query.email;
+      const email1 = req.user.email;
+      if(email !== email1){
+        return res.status(403).send({message: 'Forbidden Access'})
+      }
+      console.log('in Details : ', email, email1);
       const query = { _id: new ObjectId(id) }
       const result = await assignmentCollection.findOne(query);
 
@@ -140,8 +152,14 @@ async function run() {
       res.send(result)
     })
 
-    app.post('/created', async (req, res) => {
+    app.post('/created',verifyToken, async (req, res) => {
+      const email = req.query.email;
+      const email1 = req.user.email;
+      if(email !== email1){
+       return res.status(403).send('Forbiddent Access');
 
+      }
+      console.log('In Created : ', email, email1);
       const assignment = req.body;
       const result = await assignmentCollection.insertOne(assignment)
       res.send(result)
@@ -191,6 +209,7 @@ async function run() {
 
     app.put('/updateAssignment/:id', async (req, res) => {
       const data = req.body;
+     
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const options = { upsert: true };
@@ -201,10 +220,12 @@ async function run() {
           difficulty: data.difficulty,
           img_url: data.img_url,
           description: data.description,
-          email: data.email
+          email: data.email,
+          due_date: data.due_date
         }
       };
       const result = await assignmentCollection.updateOne(query, updateDoc, options)
+      console.log(result);
       res.send(result)
     })
 
